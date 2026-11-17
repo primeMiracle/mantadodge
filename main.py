@@ -1,11 +1,11 @@
 """CLI: python main.py "Составь акт по файлам из input/" или без аргументов — диалог."""
 import sys
 
-from docagent.agent import DocAgent
+from docagent.agent import make_agent
 
 
 def main():
-    agent = DocAgent("workspace")
+    agent = make_agent("workspace")
     if len(sys.argv) > 1:
         print(agent.ask(" ".join(sys.argv[1:])))
         return

@@ -6,7 +6,7 @@ from pathlib import Path
 from flask import Flask, jsonify, request, send_from_directory
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from docagent.agent import DocAgent  # noqa: E402
+from docagent.agent import make_agent  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent / "workspace"
 INPUT, OUTPUT = ROOT / "input", ROOT / "output"
@@ -21,7 +21,7 @@ _agent = None
 def agent() -> DocAgent:
     global _agent
     if _agent is None:
-        _agent = DocAgent(str(ROOT), verbose=False)
+        _agent = make_agent(str(ROOT), verbose=False)
     return _agent
 
 
@@ -57,8 +57,8 @@ def chat():
         reply = agent().ask(text)
     except Exception as e:
         msg = str(e)
-        if "api_key" in msg.lower() or "authentication" in msg.lower():
-            msg = "Не задан ANTHROPIC_API_KEY (или он неверный)."
+        if "api_key" in msg.lower() or "authentication" in msg.lower() or "api key" in msg.lower():
+            msg = "Не задан или неверен ключ API. См. раздел «Модели и ключи» в README."
         return jsonify(error=msg), 500
     return jsonify(reply=reply, **files().json)
 
