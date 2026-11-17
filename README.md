@@ -12,6 +12,11 @@ python main.py "Составь акт выполненных работ по д�
 Входные файлы — в `workspace/input/`, результат — в `workspace/output/`.
 Шаблоны `.docx` с `{{плейсхолдерами}}` кладите в `workspace/templates/`.
 
+## Веб-интерфейс
+```bash
+python -m web.app   # затем откройте http://localhost:5000
+```
+
 ## Структура
 - `docagent/prompts.py` — системный промпт и структура типовых документов
 - `docagent/tools.py` — инструменты (чтение, создание docx, заполнение шаблона), доступ только внутри workspace

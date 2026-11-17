@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Агент по документам</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --line:#e3e6eb; --text:#1c2230; --muted:#6b7385; --accent:#2f5bea; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--text); }
+  header { padding:14px 24px; background:var(--card); border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; }
+  header h1 { font-size:18px; margin:0; }
+  main { display:grid; grid-template-columns:300px 1fr; gap:16px; padding:16px 24px; height:calc(100vh - 60px); }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; }
+  aside { display:flex; flex-direction:column; gap:16px; overflow:auto; }
+  h2 { font-size:13px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin:0 0 10px; }
+  ul { list-style:none; margin:0; padding:0; }
+  li { padding:6px 0; border-bottom:1px solid var(--line); word-break:break-all; font-size:14px; }
+  li:last-child { border:none; }
+  a { color:var(--accent); text-decoration:none; } a:hover { text-decoration:underline; }
+  .empty { color:var(--muted); font-size:14px; }
+  .drop { border:2px dashed var(--line); border-radius:10px; padding:18px; text-align:center; color:var(--muted); cursor:pointer; margin-bottom:10px; }
+  .drop.over { border-color:var(--accent); color:var(--accent); }
+  button { background:var(--accent); color:#fff; border:none; border-radius:8px; padding:9px 16px; font-size:14px; cursor:pointer; }
+  button:disabled { opacity:.5; cursor:default; }
+  button.ghost { background:transparent; color:var(--muted); border:1px solid var(--line); }
+  .chat { display:flex; flex-direction:column; min-height:0; }
+  #log { flex:1; overflow:auto; display:flex; flex-direction:column; gap:10px; padding-bottom:10px; }
+  .msg { max-width:80%; padding:10px 14px; border-radius:12px; white-space:pre-wrap; }
+  .user { align-self:flex-end; background:var(--accent); color:#fff; }
+  .bot { align-self:flex-start; background:#eef0f4; }
+  .err { align-self:flex-start; background:#fde8e8; color:#9b1c1c; }
+  .hints { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+  .hints span { font-size:13px; border:1px solid var(--line); border-radius:99px; padding:4px 12px; cursor:pointer; color:var(--muted); }
+  .hints span:hover { color:var(--accent); border-color:var(--accent); }
+  form { display:flex; gap:8px; }
+  textarea { flex:1; resize:none; border:1px solid var(--line); border-radius:8px; padding:10px; font:inherit; height:60px; }
+  @media (max-width:800px) { main { grid-template-columns:1fr; height:auto; } .chat { height:70vh; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>📄 Агент по документам</h1>
+  <button class="ghost" id="reset">Новый диалог</button>
+</header>
+<main>
+  <aside>
+    <div class="card">
+      <h2>Исходные файлы</h2>
+      <div class="drop" id="drop">Перетащите файлы сюда<br>или нажмите для выбора<br><small>docx, pdf, xlsx, csv, txt</small></div>
+      <input type="file" id="file" multiple hidden>
+      <ul id="inputs"></ul>
+    </div>
+    <div class="card">
+      <h2>Готовые документы</h2>
+      <ul id="outputs"></ul>
+    </div>
+  </aside>
+  <section class="card chat">
+    <div id="log"><div class="msg bot">Здравствуйте! Загрузите файлы слева и опишите, какой документ нужно составить: отчёт, акт, справку и т. д.</div></div>
+    <div class="hints">
+      <span>Составь акт выполненных работ по загруженным данным</span>
+      <span>Сделай краткий отчёт по загруженному файлу</span>
+      <span>Проверь документ на ошибки и несоответствия</span>
+    </div>
+    <form id="form">
+      <textarea id="msg" placeholder="Что нужно сделать? (Enter — отправить, Shift+Enter — новая строка)"></textarea>
+      <button id="send">Отправить</button>
+    </form>
+  </section>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const log = $('log');
+
+function add(cls, text) {
+  const d = document.createElement('div'); d.className = 'msg ' + cls; d.textContent = text;
+  log.appendChild(d); log.scrollTop = log.scrollHeight; return d;
+}
+function render(ul, items, link) {
+  ul.innerHTML = items.length ? '' : '<li class="empty">пока пусто</li>';
+  for (const n of items) {
+    const li = document.createElement('li');
+    if (link) { const a = document.createElement('a'); a.href = '/download/' + encodeURIComponent(n); a.textContent = '⬇ ' + n; li.appendChild(a); }
+    else li.textContent = n;
+    ul.appendChild(li);
+  }
+}
+function setFiles(d) { render($('inputs'), d.input, false); render($('outputs'), d.output, true); }
+async function refresh() { setFiles(await (await fetch('/api/files')).json()); }
+
+async function upload(list) {
+  const fd = new FormData(); for (const f of list) fd.append('files', f);
+  setFiles(await (await fetch('/api/upload', {method:'POST', body:fd})).json());
+}
+$('drop').onclick = () => $('file').click();
+$('file').onchange = e => upload(e.target.files);
+$('drop').ondragover = e => { e.preventDefault(); $('drop').classList.add('over'); };
+$('drop').ondragleave = () => $('drop').classList.remove('over');
+$('drop').ondrop = e => { e.preventDefault(); $('drop').classList.remove('over'); upload(e.dataTransfer.files); };
+
+document.querySelectorAll('.hints span').forEach(s => s.onclick = () => { $('msg').value = s.textContent; $('msg').focus(); });
+$('msg').onkeydown = e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); $('form').requestSubmit(); } };
+
+$('form').onsubmit = async e => {
+  e.preventDefault();
+  const text = $('msg').value.trim(); if (!text) return;
+  $('msg').value = ''; $('send').disabled = true;
+  add('user', text);
+  const wait = add('bot', 'Работаю над документом…');
+  try {
+    const r = await fetch('/api/chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({message:text})});
+    const d = await r.json();
+    wait.remove();
+    if (d.error) add('err', d.error); else { add('bot', d.reply); setFiles(d); }
+  } catch (err) { wait.remove(); add('err', 'Ошибка соединения: ' + err); }
+  $('send').disabled = false;
+};
+$('reset').onclick = async () => { await fetch('/api/reset', {method:'POST'}); log.innerHTML=''; add('bot', 'Новый диалог начат.'); };
+refresh();
+</script>
+</body>
+</html>
