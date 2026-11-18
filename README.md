@@ -12,6 +12,9 @@ python main.py "Составь акт выполненных работ по д�
 Входные файлы — в `workspace/input/`, результат — в `workspace/output/`.
 Шаблоны `.docx` с `{{плейсхолдерами}}` кладите в `workspace/templates/`.
 
+## Быстрый запуск
+Windows: двойной клик по `run.bat`. Mac/Linux: `./run.sh`. При первом запуске попросит ключ Gemini.
+
 ## Веб-интерфейс
 ```bash
 python -m web.app   # затем откройте http://localhost:5000

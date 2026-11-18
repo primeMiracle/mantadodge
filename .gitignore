@@ -1,2 +1,7 @@
 __pycache__/
 .env
+key.txt
+.venv/
+workspace/input/*
+workspace/output/*
+!workspace/*/.gitkeep
